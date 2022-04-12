@@ -24,6 +24,8 @@ public class Server {
             }
             OutputStream os = clientSocket.getOutputStream();
             os.write(resMessage.getbytes());
+            clientSocket.shutdownOutput();
+            System.out.println("请求处理完毕......");
             Thread.sleep(20);
         }
     }
@@ -32,7 +34,7 @@ public class Server {
         DataInputStream in= new DataInputStream(new BufferedInputStream(new FileInputStream("passwd")));
         DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("passwd",true)));
         if(command==command.REGREQUEST){
-            int cmdhash=0;
+            int cmdhash;
             while (in.available()!=0){
                 cmdhash = in.readInt();
                 if(cmdhash == username.hashCode()){
@@ -51,7 +53,7 @@ public class Server {
             return "1 register success!";
         }
         else{
-            int userhash = 0, passwordhash = 0;
+            int userhash, passwordhash;
             if(in.available()==0){
                 in.close();
                 out.flush();
@@ -98,16 +100,16 @@ public class Server {
         if(cmd != commandIDS.REGREQUEST && cmd!=commandIDS.LOGREQUEST){
             throw new Exception("消息格式错误！");
         }
-        cmd = (cmd==commandIDS.REGREQUEST)?commandIDS.REGRESPONSE:commandIDS.LOGRESPONSE;
         System.arraycopy(bytes,totalLength.length+command.length,username,0,username.length);
-        String usrname = new String(username);
+        String usrname = Utils.byteToStr(username);
         System.arraycopy(bytes,totalLength.length+command.length+username.length,passwd,0,passwd.length);
-        String password = new String(passwd);
+        String password = Utils.byteToStr(passwd);
         String res = checkfile(cmd,usrname,password);
         Scanner reScanner = new Scanner(res);
         int index = reScanner.nextInt();
         String description = reScanner.nextLine();
         STATUS status = STATUS.values()[index];
+        cmd = (cmd==commandIDS.REGREQUEST)?commandIDS.REGRESPONSE:commandIDS.LOGRESPONSE;
         return new ResMessage(cmd,status,description);
     }
 

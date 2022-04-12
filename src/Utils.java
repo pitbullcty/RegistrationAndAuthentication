@@ -15,6 +15,17 @@ public class Utils {
         }
         return res;
     }
+
+    public static String byteToStr(byte[] bytes){
+        int length = 0;
+        for(int i=0;i<bytes.length;i++){
+            if (bytes[i] == 0) {
+                length = i;
+                break;
+            }
+        }
+        return new String(bytes,0,length);
+    }
 }
 
 //注册类型
