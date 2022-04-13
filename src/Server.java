@@ -17,13 +17,12 @@ public class Server {
             clientSocket  = serverSocket.accept();
             System.out.println("处理客户端请求.....");
             InputStream is = clientSocket.getInputStream();
-            byte[] bytes = new byte[1024];
-            ResMessage resMessage = null;
-            while ((is.read(bytes)!=-1)){
-                resMessage = prase(bytes);
-            }
+            ObjectInputStream objectInputStream = new ObjectInputStream(is);
+            Object o = objectInputStream.readObject();
+            ResMessage resMessage = prase((ReqMessage) o);
             OutputStream os = clientSocket.getOutputStream();
-            os.write(resMessage.getbytes());
+            ObjectOutputStream  outputStream = new ObjectOutputStream(os);
+            outputStream.writeObject(resMessage);
             clientSocket.shutdownOutput();
             System.out.println("请求处理完毕......");
             Thread.sleep(20);
@@ -85,24 +84,20 @@ public class Server {
         }
     }
 
-    public ResMessage prase(byte[] bytes) throws Exception{
-        byte[] totalLength = new byte[4];
-        byte[] command = new byte[4];
-        byte[] username = new byte[20];
-        byte[] passwd = new byte[30];
-        System.arraycopy(bytes,0,totalLength,0,totalLength.length);
+    public ResMessage prase(ReqMessage reqMessage) throws Exception{
+        byte[] totalLength = reqMessage.getTotalLength();
+        byte[] command = reqMessage.getCommandID();
+        byte[] username = reqMessage.getUsername();
+        byte[] passwd = reqMessage.getPasswd();
         int Length = Utils.byeToint(totalLength);
         if(Length != MessageHeader.REQLENGTH){
             throw new Exception("消息格式错误！");
         }
-        System.arraycopy(bytes,totalLength.length,command,0,command.length);
         commandIDS cmd = commandIDS.values()[Utils.byeToint(command)];
         if(cmd != commandIDS.REGREQUEST && cmd!=commandIDS.LOGREQUEST){
             throw new Exception("消息格式错误！");
         }
-        System.arraycopy(bytes,totalLength.length+command.length,username,0,username.length);
         String usrname = Utils.byteToStr(username);
-        System.arraycopy(bytes,totalLength.length+command.length+username.length,passwd,0,passwd.length);
         String password = Utils.byteToStr(passwd);
         String res = checkfile(cmd,usrname,password);
         Scanner reScanner = new Scanner(res);
