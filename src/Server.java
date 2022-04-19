@@ -19,7 +19,7 @@ public class Server {
             InputStream is = clientSocket.getInputStream();
             ObjectInputStream objectInputStream = new ObjectInputStream(is);
             Object o = objectInputStream.readObject();
-            ResMessage resMessage = prase((ReqMessage) o);
+            ResMessage resMessage = parse((ReqMessage) o);
             OutputStream os = clientSocket.getOutputStream();
             ObjectOutputStream  outputStream = new ObjectOutputStream(os);
             outputStream.writeObject(resMessage);
@@ -33,10 +33,10 @@ public class Server {
         DataInputStream in= new DataInputStream(new BufferedInputStream(new FileInputStream("passwd")));
         DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("passwd",true)));
         if(command==command.REGREQUEST){
-            int cmdhash;
+            String tempname=null;
             while (in.available()!=0){
-                cmdhash = in.readInt();
-                if(cmdhash == username.hashCode()){
+                tempname = in.readUTF();
+                if(tempname.equals(username)){
                     in.close();
                     out.flush();
                     out.close();
@@ -44,7 +44,7 @@ public class Server {
                 }
                 in.readInt();
             }
-            out.writeInt(username.hashCode());
+            out.writeUTF(username);
             out.writeInt(password.hashCode());
             in.close();
             out.flush();
@@ -52,7 +52,8 @@ public class Server {
             return "1 register success!";
         }
         else{
-            int userhash, passwordhash;
+            String tempusr = null;
+            int passwordhash;
             if(in.available()==0){
                 in.close();
                 out.flush();
@@ -60,9 +61,9 @@ public class Server {
                 return "0 file empty!";
             }
             while (in.available()!=0){
-                userhash = in.readInt();
+                tempusr = in.readUTF();
                 passwordhash = in.readInt();
-                if(userhash==username.hashCode()){
+                if(tempusr.equals(username)){
                     if(passwordhash==password.hashCode()) {
                         in.close();
                         out.flush();
@@ -84,7 +85,7 @@ public class Server {
         }
     }
 
-    public ResMessage prase(ReqMessage reqMessage) throws Exception{
+    public ResMessage parse(ReqMessage reqMessage) throws Exception{
         byte[] totalLength = reqMessage.getTotalLength();
         byte[] command = reqMessage.getCommandID();
         byte[] username = reqMessage.getUsername();
@@ -100,9 +101,8 @@ public class Server {
         String usrname = Utils.byteToStr(username);
         String password = Utils.byteToStr(passwd);
         String res = checkfile(cmd,usrname,password);
-        Scanner reScanner = new Scanner(res);
-        int index = reScanner.nextInt();
-        String description = reScanner.nextLine();
+        int index = Integer.valueOf(res.substring(0,1));
+        String description = res.substring(2);
         STATUS status = STATUS.values()[index];
         cmd = (cmd==commandIDS.REGREQUEST)?commandIDS.REGRESPONSE:commandIDS.LOGRESPONSE;
         return new ResMessage(cmd,status,description);

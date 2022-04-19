@@ -42,7 +42,7 @@ public class Client {
         InputStream is = socket.getInputStream();
         ObjectInputStream objectInputStream = new ObjectInputStream(is);
         Object o = objectInputStream.readObject();
-        String res = prase((ResMessage) o);
+        String res = parse((ResMessage) o);
         System.out.println(res);
     }
 
@@ -60,11 +60,11 @@ public class Client {
         InputStream is = socket.getInputStream();
         ObjectInputStream objectInputStream = new ObjectInputStream(is);
         Object o = objectInputStream.readObject();
-        String res = prase((ResMessage)o);
+        String res = parse((ResMessage)o);
         System.out.println(res);
     }
 
-    public String prase(ResMessage resMessage) throws Exception {
+    public String parse(ResMessage resMessage) throws Exception {
         byte[] totalLength = resMessage.getTotalLength();
         byte[] command = resMessage.getCommandID();
         byte[] status = resMessage.getStatus();
@@ -80,7 +80,17 @@ public class Client {
         if (status[0] != 0 && status[0]!=1) {
             throw new Exception("消息格式错误！");
         }
-        return Utils.byteToStr(description);
+        String res ="";
+        if(cmd==commandIDS.LOGRESPONSE){
+            if(status[0]==1) res+="登陆成功\n";
+            else res+="登陆失败\n";
+        }
+        else {
+            if(status[0]==1) res+="注册成功\n";
+            else res+="注册失败\n";
+        }
+        res+="info:"+ Utils.byteToStr(description);
+        return res;
     }
 
     public static void main(String[] args) {
