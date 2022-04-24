@@ -15,13 +15,14 @@ public class ReqMessage extends MessageHeader{
         System.arraycopy(Bytepassword,0,this.passwd,0,Bytepassword.length);
     }
 
-    public byte[] getPasswd() {
-        return passwd;
+    @Override
+    public byte[] getbytes() {
+        byte[] temp = super.getbytes();
+        byte[] res = new byte[temp.length+username.length+passwd.length];
+        System.arraycopy(temp,0,res,0,temp.length);
+        System.arraycopy(username,0,res,temp.length,username.length);
+        System.arraycopy(passwd,0,res,temp.length+username.length,passwd.length);
+        return res;
     }
-
-    public byte[] getUsername() {
-        return username;
-    }
-
 
 }
