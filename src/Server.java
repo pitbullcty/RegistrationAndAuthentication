@@ -17,12 +17,13 @@ public class Server {
             clientSocket  = serverSocket.accept();
             System.out.println("处理客户端请求.....");
             InputStream is = clientSocket.getInputStream();
-            ObjectInputStream objectInputStream = new ObjectInputStream(is);
-            Object o = objectInputStream.readObject();
-            ResMessage resMessage = parse((ReqMessage) o);
+            byte[] bytes = new byte[1024];
+            ResMessage resMessage = null;
+            while ((is.read(bytes)!=-1)){
+                resMessage = prase(bytes);
+            }
             OutputStream os = clientSocket.getOutputStream();
-            ObjectOutputStream  outputStream = new ObjectOutputStream(os);
-            outputStream.writeObject(resMessage);
+            os.write(resMessage.getbytes());
             clientSocket.shutdownOutput();
             System.out.println("请求处理完毕......");
             Thread.sleep(20);
@@ -33,10 +34,10 @@ public class Server {
         DataInputStream in= new DataInputStream(new BufferedInputStream(new FileInputStream("passwd")));
         DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("passwd",true)));
         if(command==command.REGREQUEST){
-            String tempname=null;
+            int cmdhash;
             while (in.available()!=0){
-                tempname = in.readUTF();
-                if(tempname.equals(username)){
+                cmdhash = in.readInt();
+                if(cmdhash == username.hashCode()){
                     in.close();
                     out.flush();
                     out.close();
@@ -44,7 +45,7 @@ public class Server {
                 }
                 in.readInt();
             }
-            out.writeUTF(username);
+            out.writeInt(username.hashCode());
             out.writeInt(password.hashCode());
             in.close();
             out.flush();
@@ -52,8 +53,7 @@ public class Server {
             return "1 register success!";
         }
         else{
-            String tempusr = null;
-            int passwordhash;
+            int userhash, passwordhash;
             if(in.available()==0){
                 in.close();
                 out.flush();
@@ -61,9 +61,9 @@ public class Server {
                 return "0 file empty!";
             }
             while (in.available()!=0){
-                tempusr = in.readUTF();
+                userhash = in.readInt();
                 passwordhash = in.readInt();
-                if(tempusr.equals(username)){
+                if(userhash==username.hashCode()){
                     if(passwordhash==password.hashCode()) {
                         in.close();
                         out.flush();
@@ -85,24 +85,29 @@ public class Server {
         }
     }
 
-    public ResMessage parse(ReqMessage reqMessage) throws Exception{
-        byte[] totalLength = reqMessage.getTotalLength();
-        byte[] command = reqMessage.getCommandID();
-        byte[] username = reqMessage.getUsername();
-        byte[] passwd = reqMessage.getPasswd();
+    public ResMessage prase(byte[] bytes) throws Exception{
+        byte[] totalLength = new byte[4];
+        byte[] command = new byte[4];
+        byte[] username = new byte[20];
+        byte[] passwd = new byte[30];
+        System.arraycopy(bytes,0,totalLength,0,totalLength.length);
         int Length = Utils.byeToint(totalLength);
         if(Length != MessageHeader.REQLENGTH){
             throw new Exception("消息格式错误！");
         }
+        System.arraycopy(bytes,totalLength.length,command,0,command.length);
         commandIDS cmd = commandIDS.values()[Utils.byeToint(command)];
         if(cmd != commandIDS.REGREQUEST && cmd!=commandIDS.LOGREQUEST){
             throw new Exception("消息格式错误！");
         }
+        System.arraycopy(bytes,totalLength.length+command.length,username,0,username.length);
         String usrname = Utils.byteToStr(username);
+        System.arraycopy(bytes,totalLength.length+command.length+username.length,passwd,0,passwd.length);
         String password = Utils.byteToStr(passwd);
         String res = checkfile(cmd,usrname,password);
-        int index = Integer.valueOf(res.substring(0,1));
-        String description = res.substring(2);
+        Scanner reScanner = new Scanner(res);
+        int index = reScanner.nextInt();
+        String description = reScanner.nextLine();
         STATUS status = STATUS.values()[index];
         cmd = (cmd==commandIDS.REGREQUEST)?commandIDS.REGRESPONSE:commandIDS.LOGRESPONSE;
         return new ResMessage(cmd,status,description);

@@ -1,6 +1,4 @@
-import java.io.Serializable;
-
-public class MessageHeader implements Serializable {
+public class MessageHeader{
     protected byte[] totalLength;
     protected byte[] commandID;
     protected final static int REQLENGTH = 58;
@@ -13,13 +11,11 @@ public class MessageHeader implements Serializable {
         this.commandID = Utils.intTobyte(command.ordinal());
     }
 
-    public byte[] getTotalLength() {
-        return totalLength;
+    public byte[] getbytes(){
+        byte[] res = new byte[totalLength.length+commandID.length];
+        System.arraycopy(totalLength,0,res,0,totalLength.length);
+        System.arraycopy(commandID,0,res,totalLength.length,commandID.length);
+        return res;
     }
-
-    public byte[] getCommandID() {
-        return commandID;
-    }
-
 }
 

@@ -14,13 +14,14 @@ public class ResMessage extends MessageHeader{
         System.arraycopy(Bytediscription,0,this.description,0,Bytediscription.length);
     }
 
-    public byte[] getDescription() {
-        return description;
+    @Override
+    public byte[] getbytes() {
+        byte[] temp = super.getbytes();
+        byte[] res = new byte[temp.length+description.length+status.length];
+        System.arraycopy(temp,0,res,0,temp.length);
+        System.arraycopy(status,0,res,temp.length,status.length);
+        System.arraycopy(description,0,res,temp.length+status.length,description.length);
+        return res;
     }
-
-    public byte[] getStatus() {
-        return status;
-    }
-
 
 }

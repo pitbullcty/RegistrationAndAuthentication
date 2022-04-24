@@ -1,4 +1,6 @@
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -35,15 +37,14 @@ public class Client {
         String password = input.nextLine();
         ReqMessage reqMessage = new ReqMessage(commandIDS.REGREQUEST, username, password);
         OutputStream os = socket.getOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(os);
-        objectOutputStream.writeObject(reqMessage);
+        os.write(reqMessage.getbytes());
         socket.shutdownOutput();
-        System.out.println("正在注册......");
         InputStream is = socket.getInputStream();
-        ObjectInputStream objectInputStream = new ObjectInputStream(is);
-        Object o = objectInputStream.readObject();
-        String res = parse((ResMessage) o);
-        System.out.println(res);
+        byte[] buffer = new byte[1024];
+        while (-1 != is.read(buffer)) {
+            String res = prase(buffer);
+            System.out.println(res);
+        }
     }
 
     public void login() throws Exception {
@@ -53,44 +54,38 @@ public class Client {
         String password = input.nextLine();
         ReqMessage reqMessage = new ReqMessage(commandIDS.LOGREQUEST, username, password);
         OutputStream os = socket.getOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(os);
-        objectOutputStream.writeObject(reqMessage);
+        os.write(reqMessage.getbytes());
         socket.shutdownOutput();
         System.out.println("正在登陆......");
         InputStream is = socket.getInputStream();
-        ObjectInputStream objectInputStream = new ObjectInputStream(is);
-        Object o = objectInputStream.readObject();
-        String res = parse((ResMessage)o);
-        System.out.println(res);
+        byte[] buffer = new byte[1024];
+        while (-1 != (is.read(buffer))) {
+            String res = prase(buffer);
+            System.out.println(res);
+        }
     }
 
-    public String parse(ResMessage resMessage) throws Exception {
-        byte[] totalLength = resMessage.getTotalLength();
-        byte[] command = resMessage.getCommandID();
-        byte[] status = resMessage.getStatus();
-        byte[] description = resMessage.getDescription();
+    public String prase(byte[] bytes) throws Exception {
+        byte[] totalLength = new byte[4];
+        byte[] command = new byte[4];
+        byte[] status = new byte[1];
+        byte[] description = new byte[64];
+        System.arraycopy(bytes, 0, totalLength, 0, totalLength.length);
         int Length = Utils.byeToint(totalLength);
         if (Length != MessageHeader.RESLENGTH) {
             throw new Exception("消息格式错误！");
         }
+        System.arraycopy(bytes, totalLength.length, command, 0, command.length);
         commandIDS cmd = commandIDS.values()[Utils.byeToint(command)];
         if (cmd != commandIDS.REGRESPONSE && cmd != commandIDS.LOGRESPONSE) {
             throw new Exception("消息格式错误！");
         }
+        System.arraycopy(bytes, totalLength.length + command.length, status, 0, status.length);
         if (status[0] != 0 && status[0]!=1) {
             throw new Exception("消息格式错误！");
         }
-        String res ="";
-        if(cmd==commandIDS.LOGRESPONSE){
-            if(status[0]==1) res+="登陆成功\n";
-            else res+="登陆失败\n";
-        }
-        else {
-            if(status[0]==1) res+="注册成功\n";
-            else res+="注册失败\n";
-        }
-        res+="info:"+ Utils.byteToStr(description);
-        return res;
+        System.arraycopy(bytes, totalLength.length + command.length + status.length, description, 0, description.length);
+        return Utils.byteToStr(description);
     }
 
     public static void main(String[] args) {
