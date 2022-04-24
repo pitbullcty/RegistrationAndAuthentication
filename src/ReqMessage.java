@@ -22,7 +22,6 @@ public class ReqMessage extends MessageHeader{
         System.arraycopy(temp,0,res,0,temp.length);
         System.arraycopy(username,0,res,temp.length,username.length);
         System.arraycopy(passwd,0,res,temp.length+username.length,passwd.length);
-        System.out.println(res.length);
         return res;
     }
 
